@@ -17,7 +17,8 @@ const uint8_t chipSelect = 10;
 const double SAMPLE_MS = 10000;
 // 1 if the setup is running on a breadboard
 const boolean ON_BREADBOARD =1;
-
+// make 0 if you don't want a header of column titles included
+#define DATAHEADER 1
 
 uint32_t logTime;
 
@@ -66,6 +67,31 @@ void setup()
 
   logFile.open("datalog.txt",O_RDWR|O_CREAT|O_AT_END);// open with properties of Read/write, create if non-existant, and start at EOF
 }//setup
+
+void printHead() {
+  Serial.print("Printing headers");
+  logFile.print("Time (ms)");
+  writeComma();
+  logFile.print("accel-x");
+  writeComma();
+  logFile.print("accel-y");
+  writeComma();
+  logFile.print("accel-z");
+  writeComma();
+  logFile.print("A0");
+  writeComma();
+  logFile.print("A1");
+  writeComma();
+  logFile.print("A2");
+  writeComma();
+  logFile.print("Mag x");
+  writeComma();
+  logFile.print("Mag y");
+  writeComma();
+  logFile.print("A4");
+  logFile.print("\n");
+}//printHead
+
 //stores data to write in cache, to be written by .sync
 void collectData() {
 
@@ -73,7 +99,7 @@ void collectData() {
   accel.getEvent(&event);
   mag.getEvent(&event);
 
-   logFile.print((double) logTime);
+   logFile.print((double) micros());
    Serial.print(logTime);
    writeComma();
    logFile.print(event.acceleration.x);
@@ -106,6 +132,13 @@ void writeComma() {
 
 void loop()
  {
+   #if DATAHEADER
+     Serial.print("entered if");
+     if (firstRun) {
+       printHead();
+       firstRun = 0;
+     }
+   #endif //DATAHEADER true
    delay(400);  // catch Due reset problem
    logTime += (1000UL*SAMPLE_MS);//seconds to check runtime for to prevent corruption
    int32_t elapsed;
