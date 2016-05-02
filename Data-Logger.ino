@@ -69,7 +69,7 @@ void setup()
   if(!sd.begin(chipSelect,SPI_HALF_SPEED))sd.initErrorHalt();
   }
 
-  logFile.open("datalog.txt",O_RDWR|O_CREAT|O_AT_END);// open with properties of Read/write, create if non-existant, and start at EOF
+  logFile.open("datalog.csv",O_RDWR|O_CREAT|O_AT_END);// open with properties of Read/write, create if non-existant, and start at EOF
   #if DATAHEADER
    Serial.print("entered if");
    if (firstRun) {
