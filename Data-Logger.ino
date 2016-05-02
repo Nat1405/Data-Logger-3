@@ -4,23 +4,44 @@
 #include <SdFatUtil.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_LSM303_U.h>
+#include <Adafruit_LSM9DS0.h>
+#define LSM9DS0_XM_CS 10
+#define LSM9DS0_GYRO_CS 9
+#define LSM9DS0_SCLK 13
+#define LSM9DS0_MISO 12
+#define LSM9DS0_MOSI 11
 SdFat sd;
 SdFile logFile;
-
-Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(54321);
-Adafruit_LSM303_Mag_Unified mag = Adafruit_LSM303_Mag_Unified(12345);
 
 //reduce size by making constants limited in size to thier requirements
 const uint8_t chipSelect = 10;
 //IMPORTANT: This value is the sample rate, and must be based on the SD card quality and it's write time
-const double SAMPLE_MS = 10000;
+const double SAMPLE_MS = 100;
 // 1 if the setup is running on a breadboard
 const boolean ON_BREADBOARD =1;
 // make 0 if you don't want a header of column titles included
 #define DATAHEADER 1
 
 uint32_t logTime;
+void setupSensors() {
+  // accelerometer range
+  lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_2G);
+  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_4G);
+  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_6G);
+  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_8G);
+  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_16G);
+
+  //magnetometer sensitivity
+  lsm.setupMag(lsm.LSM9DS0_MAGGAIN_2GAUSS);
+  //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_4GAUSS);
+  //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_8GAUSS);
+  //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_12GAUSS);
+
+  //gyroscope
+  lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_245DPS);
+  //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_500DPS);
+  //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
+}//setupSensors
 
 void setup()
 {
@@ -29,33 +50,16 @@ void setup()
   while (!Serial) {
     ;
   }
-
-  Serial.println("Accelerometer Test"); Serial.println("");
-
-
-  // Initialise the sensor
-  if(!accel.begin())
+  Serial.print(F("LSM check"));
+    if(!lsm.begin())
   {
-    // There was a problem detecting the ADXL345 ... check your connections
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    /* There was a problem detecting the LSM9DS0 ... check your connections */
+    Serial.print(F("Ooops, no LSM9DS0 detected ... Check your wiring!"));
     while(1);
   }
-
-  Serial.println("Magnetometer Test"); Serial.println("");
-
-
-  mag.enableAutoRange(true);
-
-
-
-  if(!mag.begin())
-  {
-    // There was a problem detecting the LSM303 ... check your connections
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
-    while(1);
-  }
-
-  Serial.print("Initializing SD card...");
+  setupSensors();
+  Serial.println(F("Found LSM9DS0 9DOF"));
+  Serial.println(F("Initializing SD card..."));
 
   // initalize SDFAT with speed dependent on if on breadboard, as Full speed
   // on breadboard or long wires can cause corruption in data
@@ -66,64 +70,68 @@ void setup()
   }
 
   logFile.open("datalog.txt",O_RDWR|O_CREAT|O_AT_END);// open with properties of Read/write, create if non-existant, and start at EOF
+  #if DATAHEADER
+   Serial.print("entered if");
+   if (firstRun) {
+     printHead();
+      firstRun = 0;
+    }
+  #endif //DATAHEADER true
 }//setup
 
 void printHead() {
-  Serial.print("Printing headers");
-  logFile.print("Time (ms)");
+  Serial.print(F("Printing headers"));
+  logFile.print("Time(s)");
   writeComma();
-  logFile.print("accel-x");
+  logFile.print("acceleration x(m/s^2)");
   writeComma();
-  logFile.print("accel-y");
+  logFile.print("acceleration y(m/s^2)");
   writeComma();
-  logFile.print("accel-z");
+  logFile.print("acceleration z(m/s^2)");
   writeComma();
-  logFile.print("A0");
+  logFile.print("mag x(uT)");
   writeComma();
-  logFile.print("A1");
+  logFile.print("mag y(uT)");
   writeComma();
-  logFile.print("A2");
+  logFile.print("mag z(uT)");
   writeComma();
-  logFile.print("Mag x");
+  logFile.print("gyro x(rad/s)");
   writeComma();
-  logFile.print("Mag y");
+  logFile.print("gyro y(rad/s)");
   writeComma();
-  logFile.print("A4");
+  logFile.print("gyro z(rad/s)");
+  writeComma();
+  logFile.print("Temp(C)");
   logFile.print("\n");
 }//printHead
 
 //stores data to write in cache, to be written by .sync
 void collectData() {
-
-  sensors_event_t event;
-  accel.getEvent(&event);
-  mag.getEvent(&event);
-
-   logFile.print((double) micros());
-   Serial.print(logTime);
+   logFile.print((double) millis()/1000);
+   Serial.println(millis());
    writeComma();
-   logFile.print(event.acceleration.x);
+   sensors_event_t accel, mag, gyro, temp;
+   lsm.getEvent(&accel, &mag, &gyro, &temp);
+   logFile.print((double)accel.acceleration.x);
    writeComma();
-   logFile.print(event.acceleration.y);
+   logFile.print((double)accel.acceleration.y);
    writeComma();
-   logFile.print(event.acceleration.z);
+   logFile.print((double)accel.acceleration.z);
    writeComma();
-   logFile.print(analogRead(A0));
+   logFile.print((double)mag.magnetic.x);
    writeComma();
-   logFile.print(analogRead(A1));
+   logFile.print((double)mag.magnetic.y);
    writeComma();
-   logFile.print(analogRead(A2));
+   logFile.print((double)mag.magnetic.z);
    writeComma();
-   logFile.print(analogRead(A3));
+   logFile.print((double)gyro.gyro.x);
    writeComma();
-   logFile.print(event.magnetic.x);
+   logFile.print((double)gyro.gyro.y);
    writeComma();
-   logFile.print(event.magnetic.y);
+   logFile.print((double)gyro.gyro.z);
    writeComma();
-   logFile.print(event.magnetic.z);
-   writeComma();
-   logFile.print(analogRead(A4));
-   logFile.write("\n");//new row
+   logFile.print((double)temp.temperature);
+   logFile.print("\n");//new row
 }//collectData
 
 void writeComma() {
@@ -132,28 +140,19 @@ void writeComma() {
 
 void loop()
  {
-   #if DATAHEADER
-     Serial.print("entered if");
-     if (firstRun) {
-       printHead();
-       firstRun = 0;
-     }
-   #endif //DATAHEADER true
-   delay(400);  // catch Due reset problem
-   logTime += (1000UL*SAMPLE_MS);//seconds to check runtime for to prevent corruption
-   int32_t elapsed;
-    do {
-    elapsed = micros()-logTime;
-  }while(elapsed < 0);
-   //collect data
-
-   Serial.print("Press any key to end");
+   Serial.print(F("Press any key to end"));
    while (Serial.read() <= 0) {
+   int32_t elapsed;
+   do {
+     elapsed = micros()-logTime;
+   }while(elapsed % SAMPLE_MS);
+   //collect data
 
    collectData();
    logFile.sync();//wite modified data to field
-   Serial.print(".");
-  }
-  logFile.close();
-  while(1);
+   }
+   logFile.close();
+   Serial.print(F("Time Elapsed (s)"));
+   Serial.println((millis()/1000));
+   while(1);
  }//loop
