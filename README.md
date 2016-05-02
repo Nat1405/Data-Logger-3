@@ -20,23 +20,19 @@ Currently Logs to .csv file, at a user-specified speed.
 ##Setup
 * Install required libraries, time, sdFat, Adafruit unified sensor, and LSM9DS0 through library mangager
 * Upload and run sdFat's [benchmark](https://github.com/greiman/SdFat/blob/master/SdFat/examples/bench/bench.ino) to dertermine card quality 
-* Use this to select run speed in ms for sample rate, as file corruption if you try to write to the card too frequently
+* Use this to select run speed in ms for sample rate, as file corruption can occur if you try to write to the card too frequently
 * Select variables for breadboard, header inclusion and sensor options 
 * If you wish, change filename/type on line 72
 
 ##Use
 * Will run upon serial connection, and will finish and upon keypress through serial monitor
-* If board loses power or is disconected from serial during run, file should still be synced.
+* If board loses power or is disconmected from serial during run, file should still be synced.
 * Easy way to check if writing is that red light on SD board should flash with every run.
 * There will be some varience between time steps of about +3-4ms
 * If there are multiple tables in csv file, lowest one will contain newest data
 
 ##Planned Features
-* Output to binary file to increase speeds if necicary,
+* Output to binary file to increase speeds if necessary, to be convereted computer-side.
 * Computer-Side java program to check over files to summarize data and any errors/skips that may have occured in flight
-* Start write on launch, end after landing.
+* Start write on launch detection, end after landing.
 * RTC support
-
-
-
-
