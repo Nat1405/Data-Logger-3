@@ -26,7 +26,7 @@ Currently Logs to .csv file, at a user-specified speed.
 
 ##Use
 * Will run upon serial connection, and will finish and upon keypress through serial monitor
-* If board loses power or is disconmected from serial during run, file should still be synced.
+* If board loses power or is disconnected from serial during run, file should still be synced.
 * Easy way to check if writing is that red light on SD board should flash with every run.
 * There will be some varience between time steps of about +3-4ms
 * If there are multiple tables in csv file, lowest one will contain newest data
@@ -36,3 +36,6 @@ Currently Logs to .csv file, at a user-specified speed.
 * Computer-Side java program to check over files to summarize data and any errors/skips that may have occured in flight
 * Start write on launch detection, end after landing.
 * RTC support
+
+
+![martlet-ascii](https://vgy.me/AaAJJm.png)
