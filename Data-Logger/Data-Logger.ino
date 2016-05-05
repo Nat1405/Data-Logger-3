@@ -13,6 +13,7 @@ const int SAMPLE_MS = 5;
 const boolean ON_BREADBOARD =1;
 // make 0 if you don't want a header of column titles included
 #define DATAHEADER 1
+#define START_ON_LAUNCH 1
 
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000);  // Use I2C, ID #1000
 #define LSM9DS0_XM_CS 10
@@ -72,10 +73,16 @@ void setup()
   #if DATAHEADER
     printHead();
   #endif //DATAHEADER true
+
+  #if START_ON_LAUNCH
+  Serial.println(F("Waiting for launch"));
+  sensors_event_t accel, mag, gyro, temp;
+  while((accel.acceleration.z-9.81)<0) lsm.getEvent(&accel, &mag, &gyro, &temp);
+  #endif
+
 }//setup
 
 void printHead() {
-  Serial.print("Printing headers");
   logFile.print("Time(s)");
   writeComma();
   logFile.print("acceleration x(m/s^2)");
@@ -106,7 +113,7 @@ void collectData() {
    Serial.println(millis());
    writeComma();
    sensors_event_t accel, mag, gyro, temp;
-  lsm.getEvent(&accel, &mag, &gyro, &temp);
+   lsm.getEvent(&accel, &mag, &gyro, &temp);
    logFile.print((double)accel.acceleration.x);
    writeComma();
    logFile.print((double)accel.acceleration.y);
@@ -135,20 +142,19 @@ void writeComma() {
 
 void loop()
  {
+   Serial.print(F("Press any key to end"));
+   while (Serial.read() <= 0) {
+    int32_t elapsed;
+    do {
+      elapsed = millis();
+    }while(elapsed % SAMPLE_MS);
+     //collect data
 
- Serial.print(F("Press any key to end"));
- while (Serial.read() <= 0) {
-  int32_t elapsed;
-   do {
-    elapsed = millis();
-  }while(elapsed % SAMPLE_MS);
-   //collect data
-
-   collectData();
-   logFile.sync();//wite modified data to field
- }// if keypress detected
-  logFile.close();
-  Serial.print(F("Time Elapsed (s)"));
-  Serial.println((millis()/1000));
-  while(1);
+    collectData();
+    logFile.sync();//wite modified data to field
+   }// if keypress detected
+    logFile.close();
+    Serial.print(F("Time Elapsed (s)"));
+    Serial.println((millis()/1000));
+    while(1);
  }//loop
