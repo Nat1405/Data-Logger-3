@@ -26,6 +26,7 @@ Currently Logs to .csv file, at a user-specified speed.
 
 ##Use
 * Will run upon serial connection, and will finish and upon keypress through serial monitor
+* If RUN_ON_LAUNCH is enabled will start connection on detection of z-accleceration increase. (currently ~+1 m/s^2)
 * If board loses power or is disconnected from serial during run, file should still be synced.
 * Easy way to check if writing is that red light on SD board should flash with every run.
 * There will be some varience between time steps of about +3-4ms
