@@ -21,10 +21,11 @@ Currently Logs to .csv file, at a user-specified speed.
 * Install required libraries, time, sdFat, Adafruit unified sensor, and LSM9DS0 through library mangager
 * Upload and run sdFat's [benchmark](https://github.com/greiman/SdFat/blob/master/SdFat/examples/bench/bench.ino) to dertermine card quality 
 * Use this to select run speed in ms for sample rate, as file corruption can occur if you try to write to the card too frequently
-* Select variables for breadboard, header inclusion and sensor options 
-* If you wish, change filename/type on line 72
+* If your card is a lower speed one, consider choosing the normal logger for ease of use, otherwise use the binary logger
 
 ##Use
+
+###Data-Logger.ino Use
 * Will run upon serial connection, and will finish and upon keypress through serial monitor
 * If RUN_ON_LAUNCH is enabled will start connection on detection of z-accleceration increase. (currently ~+1 m/s^2)
 * If board loses power or is disconnected from serial during run, file should still be synced.
@@ -32,11 +33,13 @@ Currently Logs to .csv file, at a user-specified speed.
 * There will be some varience between time steps of about +3-4ms
 * If there are multiple tables in csv file, lowest one will contain newest data
 
-##Planned Features
-* Output to binary file to increase speeds if necessary, to be convereted computer-side.
-* Computer-Side java program to check over files to summarize data and any errors/skips that may have occured in flight
-* Start write on launch detection, end after landing.
-* RTC support
+###Binary-Data-Logger Use
+* Will run on keypress, and uses arduino's onboard RAM buffers to save to the card
+* If board loses power, the data will be saved to the "tmp_log.bin"
+* Otherwise it will save to "logXX.bin" depending on how many files already exist on it
+* To convert, simply compile the binaryDecoder.cpp to C++11 standard, and place the binary file in the same folder and run.
 
+##Thanks
+Thanks to [@fdpierson](https://github.com/fdpierson) for helping with binary file reading
 
 ![martlet-ascii](https://vgy.me/AaAJJm.png)
