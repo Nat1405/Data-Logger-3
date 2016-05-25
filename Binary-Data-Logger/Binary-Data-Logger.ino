@@ -1,4 +1,4 @@
-/* Adaptaion of Bill Greiman's LowLatancyLogger SdFat example to make use of the LSM9DS0 library
+/* Adaptaion of Bill Greiman's LowLatancyLogger SdFat example to make use of the LSM9DS0 and DS18B20
    Uses RAM buffer and SDFat's buffer to write data in 512 byte blocks, allowing higher writing speed
    Will write to a binary file, and as such must be converted using the binaryDecoder found in computer-side coverter
    If you need a Simpler logger, use the basic data-logger.
@@ -8,6 +8,8 @@
 #include <SdFatUtil.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM9DS0.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 //addresses and values for writing to the LSM9DS0
 typedef enum {
   LSM9DS0_REGISTER_OUT_X_L_G           = 0x28,
@@ -30,9 +32,16 @@ typedef enum {
   LSM9DS0_GYROSCALE_2000DPS            = (0b10 << 4)
 } lsm9ds0GyroScale_t;
 
-
+//----------------------------------------------
 #include "UserDataType.h"
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
+//For Temperature sensor
+#define ONE_WIRE_BUS 2
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+#define TEMP_RESOLUTION 9 //can chose a resolution of 9,10,11,12 bits (more bits results in a longer read time)
+int32_t delayInMillis =0;
+uint64_t lastTempRequest = 0;
 //----------------------------------------------
 void acquireData(data_t* data) {
     data->time = micros();
@@ -44,12 +53,16 @@ void acquireData(data_t* data) {
     data->adc[3] = lsm.gyroData.x;
     data->adc[4] = lsm.gyroData.y;
     data->adc[5] = lsm.gyroData.z;
-    /*
-    lsm.readMag();
-    data->adc[6] = lsm.magData.x;
-    data->adc[7] = lsm.magData.y;
-    data->adc[8] = lsm.magData.z;
-    */
+    //only collect Temperature readings when the sensor has collected it
+    if (millis() - lastTempRequest >= delayInMillis) {
+    data->adc[6] = sensors.getTemp(0);
+    Serial.println(F("got temp"));
+    sensors.requestTemperatures(); //get a new temp
+    lastTempRequest = millis(); 
+    } else {
+    data->adc[6] = 0;//write something here to make sure nothing breaks in reading
+    Serial.println(F("."));
+    }
 }//acquireData
 //-------------------------------------------
 //Interval between data records in microseconds.
@@ -312,10 +325,10 @@ void setup(void) {
   lsm.begin();
   //accelation
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG1_XM, LSM9DS0_ACCELDATARATE_1600HZ);
-  //magnometer
-  //lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG6_XM, LSM9DS0_MAGDATARATE_100HZ);
   //gyro
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, LSM9DS0_GYROSCALE_2000DPS);
+  //Temperature
+
   Serial.print(F("Records/block: "));
   Serial.println(DATA_DIM);
   if (sizeof(block_t) != 512) {
@@ -325,6 +338,13 @@ void setup(void) {
   if (!sd.begin(SD_CS_PIN, SPI_FULL_SPEED)) {
     sd.initErrorPrint();
   }
+  //start the Temperature sensor
+  sensors.begin();
+  sensors.setResolution(TEMP_RESOLUTION);
+  sensors.setWaitForConversion(false);
+  sensors.requestTemperatures();
+  delayInMillis = 750 / (1 << (12 - TEMP_RESOLUTION));
+  lastTempRequest = millis();
 }//setup
 
 void loop(void) {
@@ -333,7 +353,6 @@ void loop(void) {
   Serial.println();
   Serial.println(F("type:"));
   Serial.println(F("r - record data"));
-
   while(!Serial.available()) {}
   char c = tolower(Serial.read());
 

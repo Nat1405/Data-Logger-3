@@ -19,6 +19,7 @@
 #define LSM9DS0_GYRO_DPS_DIGIT_245DPS  (0.00875F)
 #define LSM9DS0_GYRO_DPS_DIGIT_500DPS  (0.01750F)
 #define LSM9DS0_GYRO_DPS_DIGIT_2000DPS (0.07000F)
+#define RAW_TEMP_TO_C (0.0078125)
 //----------------------------------------------------
 //Set to the same value which you grab
 const float accel_mg_lsb = LSM9DS0_ACCEL_MG_LSB_2G;
@@ -33,6 +34,7 @@ struct data_t {
   std::int16_t gyroX;
   std::int16_t gyroY;
   std::int16_t gyroZ;
+  std::int16_t temp;
 };
 
 const int BLOCK_SIZE = 512;
@@ -68,6 +70,7 @@ std::ostream& operator<<(std::ostream& stream, const data_t& data) {
   stream << data.gyroX * gyro_dps_digit << ",";
   stream << data.gyroY * gyro_dps_digit << ",";
   stream << data.gyroZ * gyro_dps_digit;
+  stream << data.temp * RAW_TEMP_TO_C<< ",";
   return stream;
 }
 

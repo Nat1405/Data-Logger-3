@@ -1,6 +1,6 @@
 #ifndef UserDataType_h
 #define UserDataType_h
-const int16_t ADC_DIM = 6;
+const int16_t ADC_DIM = 7;
 struct data_t {
   unsigned long time;
   int8_t adc[ADC_DIM];
