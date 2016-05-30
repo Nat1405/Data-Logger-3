@@ -1,3 +1,5 @@
+#pragma GCC optimize ("-O2")
+
 #include <SPI.h>
 #include <Time.h>
 #include <SdFat.h>
