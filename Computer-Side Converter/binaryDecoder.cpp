@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <iostream>
 #define BASE_NAME "data01";
 //Values adapted from LSM9DS0 library to use in converting raw data to proper types
 //----------------------------------------------------
@@ -28,13 +29,7 @@ const float gyro_dps_digit = LSM9DS0_GYRO_DPS_DIGIT_245DPS;
 #pragma pack(1)
 struct data_t {
   std::uint32_t ms;
-  std::int16_t accelX;
-  std::int16_t accelY;
-  std::int16_t accelZ;
-  std::int16_t gyroX;
-  std::int16_t gyroY;
-  std::int16_t gyroZ;
-  std::int16_t temp;
+  std::int16_t d[7];
 };
 
 const int BLOCK_SIZE = 512;
@@ -64,13 +59,13 @@ std::istream& operator>>(std::istream& stream, const block_t& block) {
 //for outputting data holder types, we want to have a standard format when we pass it, as well as convert the values in the data struct
 std::ostream& operator<<(std::ostream& stream, const data_t& data) {
   stream << data.ms << ",";
-  stream << data.accelX * accel_mg_lsb * SENSORS_GRAVITY_STANDARD / 1000 << ",";
-  stream << data.accelY * accel_mg_lsb * SENSORS_GRAVITY_STANDARD / 1000 << ",";
-  stream << data.accelZ * accel_mg_lsb * SENSORS_GRAVITY_STANDARD / 1000 << ",";
-  stream << data.gyroX * gyro_dps_digit << ",";
-  stream << data.gyroY * gyro_dps_digit << ",";
-  stream << data.gyroZ * gyro_dps_digit;
-  stream << data.temp * RAW_TEMP_TO_C<< ",";
+  stream << data.d[0] * accel_mg_lsb * SENSORS_GRAVITY_STANDARD / 1000 << ",";
+  stream << data.d[1] * accel_mg_lsb * SENSORS_GRAVITY_STANDARD / 1000 << ",";
+  stream << data.d[2] * accel_mg_lsb * SENSORS_GRAVITY_STANDARD / 1000 << ",";
+  stream << data.d[3] * gyro_dps_digit << ",";
+  stream << data.d[4] * gyro_dps_digit << ",";
+  stream << data.d[5] * gyro_dps_digit << ",";
+  stream << data.d[6];
   return stream;
 }
 
@@ -83,6 +78,12 @@ std::ostream& operator<<(std::ostream& stream, const block_t& block) {
 
 int main() {
   //prep files for write/read
+  std::cout << "Working with ";
+  std::cout << DATA_DIM;
+  std::cout << " Records per block\n";
+  std::cout << "with size of ";
+  std::cout << sizeof(data_t);
+  std::cout << "\n";
   std::ifstream bin("data01.bin", std::ifstream::binary);
   std::ofstream csv("data.csv");
   //preform the transfer using the above
@@ -90,4 +91,6 @@ int main() {
     std::istream_iterator<block_t>(bin),
     std::istream_iterator<block_t>(),
     std::ostream_iterator<block_t>(csv));
+  std::cout << "DONE!\n";
+  system("pause");
 }
