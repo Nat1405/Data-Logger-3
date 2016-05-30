@@ -10,6 +10,9 @@
 #include <Adafruit_LSM9DS0.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Adafruit_NeoPixel.h>
+
+#define LIGHT_PIN 2
 //addresses and values for writing to the LSM9DS0
 typedef enum {
   LSM9DS0_REGISTER_OUT_X_L_G           = 0x28,
@@ -31,6 +34,7 @@ typedef enum {
 typedef enum {
   LSM9DS0_GYROSCALE_2000DPS            = (0b10 << 4)
 } lsm9ds0GyroScale_t;
+
 
 //----------------------------------------------
 #include "UserDataType.h"
@@ -65,6 +69,20 @@ void acquireData(data_t* data) {
 
 }//acquireData
 //-------------------------------------------
+//----------------------------------------------
+//set up an object to control the light sensor for the eggs
+
+//setup the light ring for the eggs
+void lightSetup() {
+  Adafruit_NeoPixel eggLight = Adafruit_NeoPixel(12, LIGHT_PIN, NEO_RGBW + NEO_KHZ800);
+  eggLight.begin();
+  //set each pixel to half brightness
+  for(int n=0;n<12;n++) {
+  eggLight.setPixelColor(n, 0, 0, 0, 50);
+  }
+  eggLight.show();
+}//lightSetup
+
 //Interval between data records in microseconds.
 const uint32_t LOG_INTERVAL_USEC = 6000;
 // SD chip select pin.
@@ -321,6 +339,8 @@ void logData() {
 void setup(void) {
   Serial.begin(115200);
   while (!Serial) {}
+  //turn on the light ring
+  lightSetup();
   //setup sensors and write to set sensetivity
   lsm.begin();
   //accelation
