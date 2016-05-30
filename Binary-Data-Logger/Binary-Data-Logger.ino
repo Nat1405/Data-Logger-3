@@ -39,7 +39,6 @@ Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 #define ONE_WIRE_BUS 2
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
-DeviceAddress tempDeviceAddress;
 #define TEMP_RESOLUTION 9 //can chose a resolution of 9,10,11,12 bits (more bits results in a longer read time)
 int32_t delayInMillis =0;
 uint64_t lastTempRequest = 0;
@@ -54,19 +53,20 @@ void acquireData(data_t* data) {
     data->adc[3] = lsm.gyroData.x;
     data->adc[4] = lsm.gyroData.y;
     data->adc[5] = lsm.gyroData.z;
-    data->adc[6] = 0;
     //only collect Temperature readings when the sensor has collected it
-    if (millis() - lastTempRequest >= 1000) {
-    data->adc[6] = sensors.getTempCByIndex(0);
+    if (millis() - lastTempRequest >= delayInMillis) {
+    data->adc[6] = sensors.getTemp(0);
     Serial.println(F("got temp"));
     sensors.requestTemperatures(); //get a new temp
-    lastTempRequest = millis();
+    lastTempRequest = millis(); 
+    } else {
+    data->adc[6] = 0;//write something here to make sure nothing breaks in reading
+    Serial.println(F("."));
     }
-
 }//acquireData
 //-------------------------------------------
 //Interval between data records in microseconds.
-const uint32_t LOG_INTERVAL_USEC = 6000;
+const uint32_t LOG_INTERVAL_USEC = 3500;
 // SD chip select pin.
 const uint8_t SD_CS_PIN = SS;
 
@@ -98,7 +98,7 @@ const uint16_t DATA_DIM = (512 - 4)/sizeof(data_t);
 
 //Compute fill so block size is 512 bytes.  FILL_DIM may be zero.
 const uint16_t FILL_DIM = 512 - 4 - DATA_DIM*sizeof(data_t);
-#pragma pack(1)
+
 struct block_t {
   uint16_t count;
   uint16_t overrun;
@@ -328,8 +328,7 @@ void setup(void) {
   //gyro
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, LSM9DS0_GYROSCALE_2000DPS);
   //Temperature
-  Serial.print(F("Record size"));
-  Serial.println(sizeof(data_t));
+
   Serial.print(F("Records/block: "));
   Serial.println(DATA_DIM);
   if (sizeof(block_t) != 512) {
@@ -341,11 +340,10 @@ void setup(void) {
   }
   //start the Temperature sensor
   sensors.begin();
-  sensors.getAddress(tempDeviceAddress, 0);
-  sensors.setResolution(tempDeviceAddress, TEMP_RESOLUTION);
+  sensors.setResolution(TEMP_RESOLUTION);
   sensors.setWaitForConversion(false);
   sensors.requestTemperatures();
-  //delayInMillis = 750 / (1 << (12 - TEMP_RESOLUTION));
+  delayInMillis = 750 / (1 << (12 - TEMP_RESOLUTION));
   lastTempRequest = millis();
 }//setup
 
