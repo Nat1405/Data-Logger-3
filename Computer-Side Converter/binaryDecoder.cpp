@@ -23,7 +23,7 @@
 #define RAW_TEMP_TO_C (0.0078125)
 //----------------------------------------------------
 //Set to the same value which you grab
-const float accel_mg_lsb = LSM9DS0_ACCEL_MG_LSB_2G;
+const float accel_mg_lsb = LSM9DS0_ACCEL_MG_LSB_16G;
 const float gyro_dps_digit = LSM9DS0_GYRO_DPS_DIGIT_245DPS;
 //create a data holder object and store in memory as a continous item
 #pragma pack(1)

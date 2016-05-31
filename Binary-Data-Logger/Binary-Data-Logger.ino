@@ -12,7 +12,14 @@
 #include <DallasTemperature.h>
 #include <Adafruit_NeoPixel.h>
 
+//pin on which
 #define LIGHT_PIN 2
+//Interval between data records in microseconds.
+const uint32_t LOG_INTERVAL_USEC = 6000;
+// log file base name.  Must be six characters or less.
+#define FILE_BASE_NAME "data"
+
+
 //addresses and values for writing to the LSM9DS0
 typedef enum {
   LSM9DS0_REGISTER_OUT_X_L_G           = 0x28,
@@ -22,10 +29,13 @@ typedef enum {
   LSM9DS0_REGISTER_TEMP_OUT_L_XM       = 0x05,
   LSM9DS0_REGISTER_OUT_X_L_M           = 0x08,
   LSM9DS0_REGISTER_CTRL_REG1_XM        = 0x20,
+  LSM9DS0_REGISTER_CTRL_REG5_XM        = 0x24,
   LSM9DS0_REGISTER_OUT_X_L_A           = 0x28,
   LSM9DS0_REGISTER_CTRL_REG6_XM        = 0x25,
+  LSM9DS0_REGISTER_CTRL_REG2_XM        = 0x21,
 }lsm9ds0MagAccelRegisters_t;
 typedef enum {
+  LSM9DS0_ACCELDATARATE_400HZ          = (0b1000 << 4),
   LSM9DS0_ACCELDATARATE_1600HZ         = (0b1010 << 4)
 }lm9ds0AccelDataRate_t;
 typedef enum {
@@ -68,7 +78,6 @@ void acquireData(data_t* data) {
     }
 
 }//acquireData
-//-------------------------------------------
 //----------------------------------------------
 //set up an object to control the light sensor for the eggs
 
@@ -83,8 +92,7 @@ void lightSetup() {
   eggLight.show();
 }//lightSetup
 
-//Interval between data records in microseconds.
-const uint32_t LOG_INTERVAL_USEC = 6000;
+
 // SD chip select pin.
 const uint8_t SD_CS_PIN = SS;
 
@@ -94,8 +102,7 @@ const uint8_t SD_CS_PIN = SS;
 // truncated if logging is stopped early.
 const uint32_t FILE_BLOCK_COUNT = 256000;
 
-// log file base name.  Must be six characters or less.
-#define FILE_BASE_NAME "data"
+
 
 //select number of buffer blocks based on end address of ram uno has 1
 
@@ -337,6 +344,7 @@ void logData() {
 //------------------------------------------------------------------------------
 
 void setup(void) {
+  pinMode(7, OUTPUT);
   Serial.begin(115200);
   while (!Serial) {}
   //turn on the light ring
@@ -344,10 +352,11 @@ void setup(void) {
   //setup sensors and write to set sensetivity
   lsm.begin();
   //accelation
-  lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG1_XM, LSM9DS0_ACCELDATARATE_1600HZ);
+  lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG2_XM, LSM9DS0_ACCEL_MG_LSB_16G);
+  lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG5_XM, 0b11110000);
   //gyro
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, LSM9DS0_GYROSCALE_2000DPS);
-  //Temperature
+
   Serial.print(F("Record size"));
   Serial.println(sizeof(data_t));
   Serial.print(F("Records/block: "));
@@ -356,9 +365,12 @@ void setup(void) {
     error("Invalid block size");
   }
   // initialize file system.
+  digitalWrite(7, HIGH);
   if (!sd.begin(SD_CS_PIN, SPI_FULL_SPEED)) {
     sd.initErrorPrint();
   }
+  delay(100);
+  digitalWrite(7, LOW);
   //start the Temperature sensor
   sensors.begin();
   sensors.getAddress(tempDeviceAddress, 0);
