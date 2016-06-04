@@ -76,6 +76,18 @@ std::ostream& operator<<(std::ostream& stream, const block_t& block) {
   return stream;
 }
 
+void writeHeader(std::ostream& stream) {
+  stream << "Time from start (ms)"<<",";
+  stream << "Accel X m/s"<<",";
+  stream << "Accel Y m/s"<<",";
+  stream << "Accel Z m/s"<<",";
+  stream << "Rot X m/s"<<",";
+  stream << "Rot Y m/s"<<",";
+  stream << "Rot Z m/s"<<",";
+  stream << "Temp (C)"<<",";
+  stream << "\n";
+}//writeHeader
+
 int main() {
   //prep files for write/read
   std::cout << "Working with ";
@@ -86,6 +98,7 @@ int main() {
   std::cout << "\n";
   std::ifstream bin("data01.bin", std::ifstream::binary);
   std::ofstream csv("data.csv");
+  writeHeader(csv);
   //preform the transfer using the above
   std::copy(
     std::istream_iterator<block_t>(bin),
