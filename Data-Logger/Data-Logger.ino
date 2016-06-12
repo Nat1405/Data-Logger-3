@@ -16,13 +16,13 @@ and if the binary logger breaks in some way */
 
 //---------------------------------User Options---------------------------------
 //Pin which the light data reader is on
-const int LIGHT_PIN = 2;
+const int LIGHT_PIN = 4;
 //Pin which the funtion button is connected
-const int BUTTON_PIN = 0;
+const int BUTTON_PIN = 8;
 //Data pin for temperature sensor
 const int ONE_WIRE_BUS = 2;
 //Pin for status light
-const int ERROR_LED_PIN = 7;
+const int ERROR_LED_PIN = 6;
 //IMPORTANT: This value is the sample rate, and must be based on the SD card quality and it's write time
 const int SAMPLE_MS = 100;
 // 1 if the setup is running on a breadboard
@@ -52,7 +52,7 @@ int  delayInMillis = 0;
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature tempSensor(&oneWire);
 DeviceAddress tempDeviceAddress;
-
+bool run =0;
 int buttonState = 0;
 
 uint32_t logTime;
@@ -98,9 +98,10 @@ void setup()
 {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  while (!Serial) {}
   pinMode(BUTTON_PIN,INPUT);
   pinMode(ERROR_LED_PIN, OUTPUT);
+  digitalWrite(ERROR_LED_PIN, LOW);
+  buttonState = LOW;
   digitalWrite(ERROR_LED_PIN, HIGH);
   Serial.print(F("LSM check"));
     if(!lsm.begin())
@@ -109,8 +110,8 @@ void setup()
     Serial.print(F("Ooops, no LSM9DS0 detected ... Check your wiring!"));
     while(1);
   }
-  setupSensors();
   Serial.println(F("Found LSM9DS0 9DOF"));
+  setupSensors();
   Serial.println(F("Initializing SD card..."));
   // initalize SDFAT with speed dependent on if on breadboard, as Full speed
   // on breadboard or long wires can cause corruption in data
@@ -125,18 +126,18 @@ void setup()
     printHead();
   #endif //DATAHEADER true
   lightSetup();
-  digitalWrite(ERROR_LED_PIN, LOW);
-  while(!buttonState==HIGH) {
-    //Wait and check button
-    buttonState = digitalRead(BUTTON_PIN);
-  }
-  digitalWrite(ERROR_LED_PIN, HIGH);
   #if START_ON_LAUNCH
   Serial.println(F("Waiting for launch"));
   sensors_event_t accel, mag, gyro, temp;
   while((accel.acceleration.z-9.81)<0) lsm.getEvent(&accel, &mag, &gyro, &temp);
   #else
   Serial.println(F("Timed launch"));
+  Serial.println("press button to start");
+  buttonState=digitalRead(BUTTON_PIN);
+  while(buttonState==HIGH) {
+    //Wait and check button
+    buttonState = digitalRead(BUTTON_PIN);
+  }
   delay(MSTime);
   #endif
   digitalWrite(ERROR_LED_PIN, LOW);
@@ -208,6 +209,7 @@ void writeComma() {
 
 void loop()
  {
+   run = 1;
    Serial.print(F("Press any key to end"));
    while (Serial.read() <= 0) {
     int32_t elapsed;
@@ -215,7 +217,6 @@ void loop()
       elapsed = millis();
     }while(elapsed % SAMPLE_MS);
      //collect data
-
     collectData();
     logFile.sync();//wite modified data to field
    }// if keypress detected

@@ -12,13 +12,24 @@
 #include <DallasTemperature.h>
 #include <Adafruit_NeoPixel.h>
 
-//pin on which
-#define LIGHT_PIN 2
+//--------------------------------User options----------------------------------
+//pin on which the light ring is on
+const uint8_t LIGHT_PIN = 4;
 //Interval between data records in microseconds.
 const uint32_t LOG_INTERVAL_USEC = 6000;
 // log file base name.  Must be six characters or less.
 #define FILE_BASE_NAME "data"
-
+//can chose a resolution of 9,10,11,12 bits (more bits results in a longer read time)
+const uint8_t TEMP_RESOLUTION = 9;
+//Set digital pin for Temperature data wire
+const uint8_t ONE_WIRE_BUS = 2;
+//set pin to set the error checking LED digital pin
+const uint8_t ERROR_LED_PIN = 6;
+//set the value for the start/stop button digital pin
+const uint8_t BUTTON_PIN = 8;
+//time to wait in ms till we start recording
+const uint32_t DELAY_MS = 1000;
+//------------------------------------------------------------------------------
 
 //addresses and values for writing to the LSM9DS0
 typedef enum {
@@ -46,18 +57,14 @@ typedef enum {
 } lsm9ds0GyroScale_t;
 
 
-//----------------------------------------------
+//------------------------------------------------------------------------------
 #include "UserDataType.h"
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
-//For Temperature sensor
-#define ONE_WIRE_BUS 2
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 DeviceAddress tempDeviceAddress;
-#define TEMP_RESOLUTION 9 //can chose a resolution of 9,10,11,12 bits (more bits results in a longer read time)
-int32_t delayInMillis =0;
 uint64_t lastTempRequest = 0;
-//----------------------------------------------
+//-----------------------------------------------------------------------
 void acquireData(data_t* data) {
     data->time = micros();
     lsm.readAccel();
@@ -76,10 +83,8 @@ void acquireData(data_t* data) {
     sensors.requestTemperatures(); //get a new temp
     lastTempRequest = millis();
     }
-
 }//acquireData
 //----------------------------------------------
-//set up an object to control the light sensor for the eggs
 
 //setup the light ring for the eggs
 void lightSetup() {
@@ -92,7 +97,7 @@ void lightSetup() {
   eggLight.show();
 }//lightSetup
 
-
+bool buttonstate = 0;
 // SD chip select pin.
 const uint8_t SD_CS_PIN = SS;
 
@@ -102,20 +107,16 @@ const uint8_t SD_CS_PIN = SS;
 // truncated if logging is stopped early.
 const uint32_t FILE_BLOCK_COUNT = 256000;
 
-
-
 //select number of buffer blocks based on end address of ram uno has 1
-
 const uint8_t BUFFER_BLOCK_COUNT = 1;
 #define TMP_FILE_NAME "tmp_log.bin"
 
 // Size of file base name.  Must not be larger than six.
 const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) - 1;
 
+//setup file system
 SdFat sd;
-
 SdBaseFile binFile;
-
 char binName[13] = FILE_BASE_NAME "00.bin";
 
 // Number of data records in a block.
@@ -147,11 +148,11 @@ inline uint8_t queueNext(uint8_t ht) {
 }
 // Error messages stored in flash.
 #define error(msg) errorFlash(F(msg))
-//------------------------------------------------------------------------------
 void errorFlash(String msg) {
   Serial.println(msg);
 }
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 // log data
 uint32_t const ERASE_SIZE = 262144L;
 void logData() {
@@ -344,8 +345,19 @@ void logData() {
 //------------------------------------------------------------------------------
 
 void setup(void) {
-  pinMode(7, OUTPUT);
-  Serial.begin(115200);
+  Serial.begin(9600);
+  pinMode(BUTTON_PIN,INPUT);
+  pinMode(ERROR_LED_PIN, OUTPUT);
+  Serial.println("press button to start");
+  buttonstate=digitalRead(BUTTON_PIN);
+  while(buttonstate==HIGH) {
+    //Wait and check button
+    buttonstate = digitalRead(BUTTON_PIN);
+  }
+  digitalWrite(ERROR_LED_PIN, HIGH);
+  Serial.println(F("BUTTON PRESSED"));
+  delay(DELAY_MS);
+  digitalWrite(ERROR_LED_PIN, LOW);
   while (!Serial) {}
   //turn on the light ring
   lightSetup();
@@ -357,45 +369,37 @@ void setup(void) {
   //gyro
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, LSM9DS0_GYROSCALE_2000DPS);
 
-  Serial.print(F("Record size"));
-  Serial.println(sizeof(data_t));
-  Serial.print(F("Records/block: "));
-  Serial.println(DATA_DIM);
   if (sizeof(block_t) != 512) {
     error("Invalid block size");
   }
   // initialize file system.
-  digitalWrite(7, HIGH);
   if (!sd.begin(SD_CS_PIN, SPI_FULL_SPEED)) {
     sd.initErrorPrint();
   }
-  delay(100);
-  digitalWrite(7, LOW);
+
   //start the Temperature sensor
   sensors.begin();
   sensors.getAddress(tempDeviceAddress, 0);
   sensors.setResolution(tempDeviceAddress, TEMP_RESOLUTION);
   sensors.setWaitForConversion(false);
   sensors.requestTemperatures();
-  //delayInMillis = 750 / (1 << (12 - TEMP_RESOLUTION));
   lastTempRequest = millis();
 }//setup
 
 void loop(void) {
-  // discard any input
   while (Serial.read() >= 0) {}
-  Serial.println();
-  Serial.println(F("type:"));
-  Serial.println(F("r - record data"));
-  while(!Serial.available()) {}
-  char c = tolower(Serial.read());
+Serial.println();
+Serial.println(F("type:"));
+Serial.println(F("r - record data"));
+while(!Serial.available()) {}
+char c = tolower(Serial.read());
 
-  // Discard extra Serial data.
-  do {
-    delay(10);
-  } while (Serial.read() >= 0);
-   if (c == 'r') {
-    logData();
+// Discard extra Serial data.
+do {
+  delay(10);
+} while (Serial.read() >= 0);
+ if (c == 'r') {
+  logData();
   } else {
     Serial.println(F("Invalid entry"));
   }
