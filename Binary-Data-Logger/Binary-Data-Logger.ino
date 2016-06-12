@@ -358,7 +358,6 @@ void setup(void) {
   Serial.println(F("BUTTON PRESSED"));
   delay(DELAY_MS);
   digitalWrite(ERROR_LED_PIN, LOW);
-  while (!Serial) {}
   //turn on the light ring
   lightSetup();
   //setup sensors and write to set sensetivity
@@ -387,20 +386,12 @@ void setup(void) {
 }//setup
 
 void loop(void) {
-  while (Serial.read() >= 0) {}
-Serial.println();
-Serial.println(F("type:"));
-Serial.println(F("r - record data"));
-while(!Serial.available()) {}
-char c = tolower(Serial.read());
-
-// Discard extra Serial data.
-do {
-  delay(10);
-} while (Serial.read() >= 0);
- if (c == 'r') {
+  //logData
   logData();
-  } else {
-    Serial.println(F("Invalid entry"));
+  //after logging blink light
+  while(1) {
+    digitalWrite(ERROR_LED_PIN, HIGH);
+    delay(2000);
+    digitalWrite(ERROR_LED_PIN, LOW);
   }
 }//loop
