@@ -55,7 +55,9 @@ typedef enum {
 typedef enum {
   LSM9DS0_GYROSCALE_2000DPS            = (0b10 << 4)
 } lsm9ds0GyroScale_t;
-
+typedef enum {
+  LSM9DS0_ACCELRANGE_16G               = (0b100 << 3)
+} lsm9ds0AccelRange_t;
 
 //------------------------------------------------------------------------------
 #include "UserDataType.h"
@@ -363,7 +365,8 @@ void setup(void) {
   //setup sensors and write to set sensetivity
   lsm.begin();
   //accelation
-  lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG2_XM, LSM9DS0_ACCEL_MG_LSB_16G);
+  lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG2_XM,  LSM9DS0_ACCELRANGE_16G );
+  //continuality
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG5_XM, 0b11110000);
   //gyro
   lsm.write8(XMTYPE, LSM9DS0_REGISTER_CTRL_REG4_G, LSM9DS0_GYROSCALE_2000DPS);
